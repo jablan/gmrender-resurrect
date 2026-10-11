@@ -39,6 +39,11 @@ typedef void (*output_transition_cb_t)(enum PlayFeedback);
 // callback with changes we send back to the controlling layer.
 typedef void (*output_update_meta_cb_t)(const struct SongMetaData *);
 
+enum output_capability {
+	OUTPUT_CAPABILITY_PAUSE = 1 << 0,
+	OUTPUT_CAPABILITY_SEEK = 1 << 1,
+};
+
 int output_init(const char *shortname);
 int output_add_options(GOptionContext *ctx);
 void output_dump_modules(void);
@@ -47,6 +52,7 @@ int output_loop(void);
 
 void output_set_uri(const char *uri, output_update_meta_cb_t meta_info);
 void output_set_next_uri(const char *uri);
+int output_get_capabilities(void);
 
 int output_play(output_transition_cb_t done_callback);
 int output_stop(void);

@@ -498,28 +498,37 @@ static void replace_current_uri_and_meta(const char *uri, const char *meta){
 	replace_var(TRANSPORT_VAR_CUR_TRACK_META, meta);
 }
 
-static void change_transport_state(enum transport_state new_state) {
-	transport_state_ = new_state;
-	assert(new_state >= TRANSPORT_STOPPED
-	       && new_state < TRANSPORT_NO_MEDIA_PRESENT);
-	if (!replace_var(TRANSPORT_VAR_TRANSPORT_STATE,
-			 transport_states[new_state])) {
-		return;  // no change.
-	}
+static void update_current_transport_actions(void) {
 	const char *available_actions = NULL;
-	switch (new_state) {
+	const int capabilities = output_get_capabilities();
+	switch (transport_state_) {
 	case TRANSPORT_STOPPED:
 		if (strlen(get_var(TRANSPORT_VAR_AV_URI)) == 0) {
 			available_actions = "PLAY";
-		} else {
+		} else if (capabilities & OUTPUT_CAPABILITY_SEEK) {
 			available_actions = "PLAY,SEEK";
+		} else {
+			available_actions = "PLAY";
 		}
 		break;
 	case TRANSPORT_PLAYING:
-		available_actions = "PAUSE,STOP,SEEK";
+		if ((capabilities & OUTPUT_CAPABILITY_PAUSE) &&
+		    (capabilities & OUTPUT_CAPABILITY_SEEK)) {
+			available_actions = "PAUSE,STOP,SEEK";
+		} else if (capabilities & OUTPUT_CAPABILITY_PAUSE) {
+			available_actions = "PAUSE,STOP";
+		} else if (capabilities & OUTPUT_CAPABILITY_SEEK) {
+			available_actions = "STOP,SEEK";
+		} else {
+			available_actions = "STOP";
+		}
 		break;
 	case TRANSPORT_PAUSED_PLAYBACK:
-		available_actions = "PLAY,STOP,SEEK";
+		if (capabilities & OUTPUT_CAPABILITY_SEEK) {
+			available_actions = "PLAY,STOP,SEEK";
+		} else {
+			available_actions = "PLAY,STOP";
+		}
 		break;
 	case TRANSPORT_TRANSITIONING:
 	case TRANSPORT_PAUSED_RECORDING:
@@ -532,6 +541,17 @@ static void change_transport_state(enum transport_state new_state) {
 		replace_var(TRANSPORT_VAR_CUR_TRANSPORT_ACTIONS,
 			    available_actions);
 	}
+}
+
+static void change_transport_state(enum transport_state new_state) {
+	transport_state_ = new_state;
+	assert(new_state >= TRANSPORT_STOPPED
+	       && new_state < TRANSPORT_NO_MEDIA_PRESENT);
+	if (!replace_var(TRANSPORT_VAR_TRANSPORT_STATE,
+			 transport_states[new_state])) {
+		return;  // no change.
+	}
+	update_current_transport_actions();
 }
 
 // Callback from our output if the song meta data changed.
@@ -632,6 +652,7 @@ static int get_current_transportactions(struct action_event *event)
 		return -1;
 	}
 
+	update_current_transport_actions();
 	upnp_append_variable(event, TRANSPORT_VAR_CUR_TRANSPORT_ACTIONS,
 			     "Actions");
 	return 0;

@@ -158,6 +158,13 @@ void output_set_next_uri(const char *uri) {
 	}
 }
 
+int output_get_capabilities(void) {
+	if (output_module && output_module->get_capabilities) {
+		return output_module->get_capabilities();
+	}
+	return 0;
+}
+
 int output_play(output_transition_cb_t transition_callback) {
 	if (output_module && output_module->play) {
 		return output_module->play(transition_callback);

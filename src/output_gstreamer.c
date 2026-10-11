@@ -194,6 +194,37 @@ static void output_gstreamer_set_next_uri(const char *uri) {
 	gs_next_uri_ = (uri && *uri) ? strdup(uri) : NULL;
 }
 
+static int output_gstreamer_get_capabilities(void) {
+	int capabilities = 0;
+	gboolean seekable = FALSE;
+	gboolean live = FALSE;
+	GstQuery *query;
+
+	if (player_ == NULL) {
+		return capabilities;
+	}
+
+	query = gst_query_new_seeking(GST_FORMAT_TIME);
+	if (gst_element_query(player_, query)) {
+		gst_query_parse_seeking(query, NULL, &seekable, NULL, NULL);
+	}
+	gst_query_unref(query);
+	if (seekable) {
+		capabilities |= OUTPUT_CAPABILITY_SEEK;
+	}
+
+	query = gst_query_new_latency();
+	if (gst_element_query(player_, query)) {
+		gst_query_parse_latency(query, &live, NULL, NULL);
+	}
+	gst_query_unref(query);
+	if (!live) {
+		capabilities |= OUTPUT_CAPABILITY_PAUSE;
+	}
+
+	return capabilities;
+}
+
 static void output_gstreamer_set_uri(const char *uri,
 				     output_update_meta_cb_t meta_cb) {
 	Log_info("gstreamer", "Set uri to '%s'", uri);
@@ -612,6 +643,7 @@ struct output_module gstreamer_output = {
 	.init        = output_gstreamer_init,
 	.set_uri     = output_gstreamer_set_uri,
 	.set_next_uri= output_gstreamer_set_next_uri,
+	.get_capabilities = output_gstreamer_get_capabilities,
 	.play        = output_gstreamer_play,
 	.stop        = output_gstreamer_stop,
 	.pause       = output_gstreamer_pause,
