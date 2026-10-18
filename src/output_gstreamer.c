@@ -144,6 +144,8 @@ static GstState get_current_player_state() {
 }
 
 static int output_gstreamer_play(output_transition_cb_t callback) {
+	GstStateChangeReturn state_change;
+
 	play_trans_callback_ = callback;
 	if (get_current_player_state() != GST_STATE_PAUSED) {
 		if (gst_element_set_state(player_, GST_STATE_READY) ==
@@ -153,10 +155,13 @@ static int output_gstreamer_play(output_transition_cb_t callback) {
 		}
 		g_object_set(G_OBJECT(player_), "uri", gsuri_, NULL);
 	}
-	if (gst_element_set_state(player_, GST_STATE_PLAYING) ==
-	    GST_STATE_CHANGE_FAILURE) {
+	state_change = gst_element_set_state(player_, GST_STATE_PLAYING);
+	if (state_change == GST_STATE_CHANGE_FAILURE) {
 		Log_error("gstreamer", "setting play state failed (2)");
 		return -1;
+	}
+	if (state_change == GST_STATE_CHANGE_ASYNC) {
+		gst_element_get_state(player_, NULL, NULL, GST_SECOND);
 	}
 	return 0;
 }
@@ -513,6 +518,9 @@ static void prepare_next_stream(GstElement *obj, gpointer userdata) {
 
 	Log_info("gstreamer", "about-to-finish cb: setting uri %s",
 		 gs_next_uri_);
+	if (gs_next_uri_ == NULL) {
+		return;
+	}
 	free(gsuri_);
 	gsuri_ = gs_next_uri_;
 	gs_next_uri_ = NULL;
