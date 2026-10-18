@@ -195,6 +195,18 @@ char *SongMetaData_to_DIDL(const struct SongMetaData *object,
 		result = replace_range(result,
 				       "<upnp:creator>", "</upnp:creator>",
 				       composer, &edits);
+		if (artist && strstr(result, "<upnp:artist>") == NULL) {
+			char *with_artist;
+			char *item_end = strstr(result, "</item>");
+			if (item_end && asprintf(&with_artist, "%.*s"
+					"\t<upnp:artist>%s</upnp:artist>\n%s",
+					(int)(item_end - result), result, artist,
+					item_end) >= 0) {
+				free(result);
+				result = with_artist;
+				edits++;
+			}
+		}
 		if (edits) {
 			// Only if we changed the content, we generate a new
 			// unique id.
