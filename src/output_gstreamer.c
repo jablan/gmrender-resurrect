@@ -345,6 +345,9 @@ static void MetaModify_add_tag(const GstTagList *list, const gchar *tag,
 		destination = &data->meta->title;
 	} else if (strcmp(tag, GST_TAG_ARTIST) == 0) {
 		destination = &data->meta->artist;
+	} else if (strcmp(tag, GST_TAG_ORGANIZATION) == 0 &&
+		   (data->meta->artist == NULL || *data->meta->artist == '\0')) {
+		destination = &data->meta->artist;
 	} else if (strcmp(tag, GST_TAG_ALBUM) == 0) {
 		destination = &data->meta->album;
 	} else if (strcmp(tag, GST_TAG_GENRE) == 0) {
