@@ -202,7 +202,7 @@ static void output_gstreamer_set_next_uri(const char *uri) {
 static int output_gstreamer_get_capabilities(void) {
 	int capabilities = 0;
 	gboolean seekable = FALSE;
-	gboolean live = FALSE;
+	gint64 duration = GST_CLOCK_TIME_NONE;
 	GstQuery *query;
 
 	if (player_ == NULL) {
@@ -218,12 +218,8 @@ static int output_gstreamer_get_capabilities(void) {
 		capabilities |= OUTPUT_CAPABILITY_SEEK;
 	}
 
-	query = gst_query_new_latency();
-	if (gst_element_query(player_, query)) {
-		gst_query_parse_latency(query, &live, NULL, NULL);
-	}
-	gst_query_unref(query);
-	if (!live) {
+	if (gst_element_query_duration(player_, GST_FORMAT_TIME, &duration) &&
+	    duration > 0) {
 		capabilities |= OUTPUT_CAPABILITY_PAUSE;
 	}
 

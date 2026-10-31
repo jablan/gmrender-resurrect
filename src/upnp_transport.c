@@ -707,6 +707,7 @@ static void *thread_update_track_time(void *userdata) {
 				print_upnp_time(tbuf, sizeof(tbuf), duration);
 				replace_var(TRANSPORT_VAR_CUR_TRACK_DUR, tbuf);
 				last_duration = duration;
+				update_current_transport_actions();
 			}
 			if (position / one_sec_unit != last_position) {
 				print_upnp_time(tbuf, sizeof(tbuf), position);
